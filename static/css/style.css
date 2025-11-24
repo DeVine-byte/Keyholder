@@ -1,0 +1,141 @@
+body {
+  font-family: "Poppins", sans-serif;
+  margin: 0;
+  background-color: #f5fff5;
+  color: #222;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #008000;
+  color: white;
+  padding: 1rem 2rem;
+}
+
+header nav a {
+  color: white;
+  text-decoration: none;
+  margin-left: 1rem;
+}
+
+.hero {
+  text-align: center;
+  margin-top: 10%;
+}
+
+.btn-primary {
+  background-color: #008000;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.btn-primary:hover {
+  background-color: #00b000;
+}
+
+/* Modal Styling */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 10;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 100, 0, 0.6);
+}
+
+.modal-content {
+  background: white;
+  margin: 10% auto;
+  padding: 20px;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 400px;
+}
+
+.close {
+  float: right;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.tabs {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 10px;
+}
+
+.tabs button {
+  background: #eee;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  width: 50%;
+}
+
+.tabs button.active {
+  background: #008000;
+  color: white;
+}
+
+.form {
+  display: none;
+  flex-direction: column;
+}
+
+.form.active {
+  display: flex;
+}
+
+.form input {
+  margin: 5px 0;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.form button {
+  margin-top: 10px;
+  background: #008000;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+
+.refer {
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 4px solid #4169e1;
+  margin: 1rem 0;
+}
+
+
+.about-hero{
+  padding: 20px;
+  border-radius: 15px;
+  margin-top: 14px;
+  border: 2px solid #c5eccd;
+  color: #008000;
+  font-size: 17px;
+}
+
+.about-details{
+  background: #f0fff4;  /* soft green card */
+  padding: 15px;
+  border-radius: 10px;
+  margin-top: 12px;
+  border: 1px solid #c5eccd;
+}
+
