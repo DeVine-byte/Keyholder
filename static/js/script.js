@@ -87,10 +87,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (response.ok && data.success) {
           window.location.href = "/dashboard";
         } else {
-          alert(data.message || "Registration failed.");
+          console.log(data.message || "Registration failed.");
         }
       } catch (err) {
-        alert("Server connection failed.");
+        console.log("Server connection failed.");
       }
     });
   }
@@ -121,10 +121,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (response.ok && data.success) {
           window.location.href = "/dashboard";
         } else {
-          alert(data.message || "Login failed.");
+          console.log(data.message || "Login failed.");
         }
       } catch (err) {
-        alert("Unable to reach server.");
+        console.log("Unable to reach server.");
       }
     });
   }
