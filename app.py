@@ -500,4 +500,4 @@ def about():
 if __name__ == "__main__":
     _ensure_indexes()
     # Do not run debug=True in production
-    app.run(debug=(os.environ.get("FLASK_ENV") != "production"))
+    app.run(debug=False)
