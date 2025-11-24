@@ -1,28 +1,22 @@
 
-function checkStrength(password) {
-  let score = 0;
-  if (password.length > 6) score++;
-  if (password.length > 10) score++;
-  if (/[A-Z]/.test(password)) score++;
-  if (/[0-9]/.test(password)) score++;
-  if (/[^A-Za-z0-9]/.test(password)) score++;
-
-  switch (score) {
-    case 0:
-    case 1:
-      return { text: "Weak", color: "red" };
-    case 2:
-      return { text: "Fair", color: "orange" };
-    case 3:
-      return { text: "Good", color: "blue" };
-    case 4:
-    case 5:
-      return { text: "Strong", color: "green" };
+//  CSRF TOKEN READER
+function getCSRFToken() {
+  const name = "X-CSRF-Token=";
+  const cookies = decodeURIComponent(document.cookie).split(";");
+  for (let c of cookies) {
+    c = c.trim();
+    if (c.startsWith(name)) {
+      return c.substring(name.length);
+    }
   }
+  return "";
 }
 
+
 document.addEventListener("DOMContentLoaded", () => {
-  // notifier
+
+  //  Nice Notification Box
+  
   function notify(message, color = "green") {
     const box = document.createElement("div");
     box.textContent = message;
@@ -31,34 +25,78 @@ document.addEventListener("DOMContentLoaded", () => {
     box.style.padding = "8px";
     box.style.marginBottom = "10px";
     box.style.borderRadius = "5px";
+    box.style.transition = "all 0.5s";
     document.querySelector(".container").prepend(box);
     setTimeout(() => box.remove(), 2000);
   }
 
-  // strength meter
-  const pwInput = document.getElementById("accPassword");
-  const strengthBox = document.getElementById("strengthBox");
-  if (pwInput) {
-    pwInput.addEventListener("input", (e) => {
-      const strength = checkStrength(e.target.value);
-      if (!e.target.value) {
-        strengthBox.textContent = "";
-        return;
-      }
-      strengthBox.innerHTML = `Strength: <span style="color:${strength.color}">${strength.text}</span>`;
-    });
+
+  
+  //  Password Strength Meter
+  
+  function checkStrength(password) {
+    let score = 0;
+    if (password.length > 6) score++;
+    if (password.length > 10) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+
+    switch (score) {
+      case 0:
+      case 1: return { text: "Weak", color: "red" };
+      case 2: return { text: "Fair", color: "orange" };
+      case 3: return { text: "Good", color: "blue" };
+      case 4:
+      case 5: return { text: "Strong", color: "green" };
+    }
   }
 
+  document.getElementById("accPassword").addEventListener("input", (e) => {
+    const strength = checkStrength(e.target.value);
+    const box = document.getElementById("strengthBox");
+
+    if (e.target.value === "") {
+      box.innerHTML = "";
+      return;
+    }
+
+    box.innerHTML = `Strength: <span style="color:${strength.color}">${strength.text}</span>`;
+  });
+
+
+  //  API BASE
+  
   const API_PASSWORD_URL = "/api/password";
-  const username = sessionStorage.getItem("username") || "";
 
-  // If username not available in sessionStorage, try to show blank and allow usage
-  if (username) {
-    const usernameDisplay = document.getElementById("usernameDisplay");
-    if (usernameDisplay) usernameDisplay.textContent = username;
+
+  
+  //  Load Username from Server
+
+  async function loadUsername() {
+    try {
+      const res = await fetch("/api/auth/me", {
+        method: "GET",
+        credentials: "include"
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById("usernameDisplay").textContent = data.username;
+      } else {
+        window.location.href = "/";
+      }
+    } catch (err) {
+      window.location.href = "/";
+    }
   }
 
-  const saveBtn = document.getElementById("saveBtn");
+  loadUsername();
+
+
+  
+  //  Load Accounts
+
   const accountsList = document.getElementById("accountsList");
   const searchInput = document.getElementById("searchInput");
 
@@ -66,311 +104,242 @@ document.addEventListener("DOMContentLoaded", () => {
   let editMode = false;
   let editAccountId = null;
 
-  // load metadata (id + name only)
   async function loadAccounts() {
     try {
-      const res = await fetch(`${API_PASSWORD_URL}/list`, {
+      const response = await fetch(`${API_PASSWORD_URL}/list`, {
         method: "GET",
-        credentials: "include" // send cookie
+        credentials: "include"
       });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        allAccounts = data.accounts || [];
+
+      const data = await response.json();
+
+      if (data.success) {
+        allAccounts = data.accounts;
         displayAccounts(allAccounts);
-      } else {
-        notify(data.message || "Failed to load accounts", "red");
       }
     } catch (err) {
-      console.error(err);
-      notify("Server error loading accounts", "red");
+      notify("Error loading accounts", "red");
     }
   }
 
   loadAccounts();
 
-  // create account DOM safely
-  function createAccountElement(acc) {
-    const box = document.createElement("div");
-    box.className = "account-box";
 
-    const title = document.createElement("strong");
-    title.textContent = acc.account_name || "Unnamed";
-
-    // password area (hidden until requested)
-    const pwDiv = document.createElement("div");
-    pwDiv.className = "password-text";
-    pwDiv.id = `pw-${acc.id}`;
-    pwDiv.style.display = "none";
-    pwDiv.textContent = ""; // will be filled on-demand
-
-    // actions
-    const actions = document.createElement("div");
-    actions.className = "actions";
-
-    const showBtn = document.createElement("button");
-    showBtn.textContent = "Show";
-    showBtn.addEventListener("click", () => fetchAndTogglePassword(acc.id));
-
-    const copyBtn = document.createElement("button");
-    copyBtn.textContent = "Copy";
-    copyBtn.addEventListener("click", () => copyPassword(acc.id));
-
-    const editBtn = document.createElement("button");
-    editBtn.textContent = "Edit";
-    editBtn.addEventListener("click", () => enterEditMode(acc.id));
-
-    const delBtn = document.createElement("button");
-    delBtn.textContent = "Delete";
-    delBtn.style.background = "red";
-    delBtn.style.color = "white";
-    delBtn.addEventListener("click", () => openDeleteModal(acc.id));
-
-    actions.appendChild(showBtn);
-    actions.appendChild(copyBtn);
-    actions.appendChild(editBtn);
-    actions.appendChild(delBtn);
-
-    box.appendChild(title);
-    box.appendChild(pwDiv);
-    box.appendChild(actions);
-
-    return box;
-  }
-
+  // ---------------------------
+  //  Display Accounts
+  // ---------------------------
   function displayAccounts(accounts) {
     accountsList.innerHTML = "";
-    if (!accounts || accounts.length === 0) {
+
+    if (accounts.length === 0) {
       accountsList.innerHTML = "<p>No accounts found.</p>";
       return;
     }
+
     accounts.forEach(acc => {
-      accountsList.appendChild(createAccountElement(acc));
+      const box = document.createElement("div");
+      box.className = "account-box";
+      box.innerHTML = `
+        <strong>${acc.account_name}</strong>
+        <div class="password-text" id="pw-${acc.id}" style="display:none;">
+          Loading...
+        </div>
+        <div class="actions">
+          <button onclick="togglePassword('${acc.id}')">Show</button>
+          <button onclick="copyPassword('${acc.id}')">Copy</button>
+          <button onclick="editAccount('${acc.id}')">Edit</button>
+          <button onclick="deleteAccount('${acc.id}')" style="background:red;color:white;">Delete</button>
+        </div>
+      `;
+
+      accountsList.appendChild(box);
     });
   }
 
-  // SEARCH
-  if (searchInput) {
-    searchInput.addEventListener("input", () => {
-      const text = searchInput.value.toLowerCase();
-      const filtered = allAccounts.filter(a => a.account_name.toLowerCase().includes(text));
-      displayAccounts(filtered);
-    });
-  }
 
-  // FETCH single password and toggle display
-  async function fetchAndTogglePassword(id) {
+  
+  //  Search
+
+  searchInput.addEventListener("input", () => {
+    const text = searchInput.value.toLowerCase();
+    const filtered = allAccounts.filter(a => a.account_name.toLowerCase().includes(text));
+    displayAccounts(filtered);
+  });
+
+
+  
+  //  Show Password (fetch from server)
+  
+  window.togglePassword = async (id) => {
     const pwDiv = document.getElementById(`pw-${id}`);
-    if (!pwDiv) return;
 
-    // if already visible, hide
     if (pwDiv.style.display === "block") {
       pwDiv.style.display = "none";
-      pwDiv.textContent = "";
       return;
     }
 
-    // fetch single password
-    try {
-      pwDiv.textContent = "Loading...";
+    pwDiv.textContent = "Decrypting...";
+
+    const response = await fetch(`/api/password/show/${id}`, {
+      method: "GET",
+      credentials: "include"
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      pwDiv.textContent = "Password: " + data.password;
       pwDiv.style.display = "block";
-
-      const res = await fetch(`${API_PASSWORD_URL}/show/${id}`, {
-        method: "GET",
-        credentials: "include"
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        // show plaintext securely
-        pwDiv.textContent = `Password: ${data.password}`;
-      } else {
-        pwDiv.textContent = "";
-        notify(data.message || "Could not retrieve password", "red");
-      }
-    } catch (err) {
-      console.error(err);
-      pwDiv.textContent = "";
-      notify("Server error retrieving password", "red");
+    } else {
+      pwDiv.textContent = "Error loading password.";
     }
-  }
+  };
 
-  // COPY password (fetch if not already loaded)
-  async function copyPassword(id) {
-    const pwDiv = document.getElementById(`pw-${id}`);
-    if (!pwDiv) return;
 
-    // if content empty, fetch first
-    if (!pwDiv.textContent) {
-      await fetchAndTogglePassword(id);
-    }
+  
+  //  Copy Password
+  
+  window.copyPassword = async (id) => {
+    const res = await fetch(`/api/password/show/${id}`, {
+      method: "GET",
+      credentials: "include"
+    });
 
-    const text = pwDiv.textContent.replace("Password: ", "");
-    if (!text) {
-      notify("No password to copy", "red");
-      return;
-    }
+    const data = await res.json();
 
-    try {
-      await navigator.clipboard.writeText(text);
+    if (data.success) {
+      navigator.clipboard.writeText(data.password);
       notify("Password copied!");
-    } catch (err) {
-      console.error(err);
-      notify("Clipboard error", "red");
     }
-  }
+  };
 
-  // EDIT - enter edit mode, fetch password first to prefill
-  async function enterEditMode(id) {
+
+
+  //  Edit Account
+  
+  window.editAccount = async (id) => {
     const acc = allAccounts.find(a => a.id === id);
-    if (!acc) return;
 
-    // fetch current password to prefill
-    try {
-      const res = await fetch(`${API_PASSWORD_URL}/show/${id}`, {
-        method: "GET",
-        credentials: "include"
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        document.getElementById("accName").value = acc.account_name;
-        document.getElementById("accPassword").value = data.password;
-        editMode = true;
-        editAccountId = id;
-        saveBtn.textContent = "Update Account";
-        notify("Editing mode enabled", "blue");
-      } else {
-        notify(data.message || "Could not fetch password", "red");
-      }
-    } catch (err) {
-      console.error(err);
-      notify("Server error", "red");
-    }
-  }
+    const res = await fetch(`/api/password/show/${id}`, {
+      method: "GET",
+      credentials: "include"
+    });
 
-  // DELETE modal workflow
+    const decrypted = await res.json();
+
+    document.getElementById("accName").value = acc.account_name;
+    document.getElementById("accPassword").value = decrypted.password;
+
+    editMode = true;
+    editAccountId = id;
+
+    document.getElementById("saveBtn").textContent = "Update";
+  };
+
+
+  
+  //  Delete Account
+  
   let deleteId = null;
-  function openDeleteModal(id) {
+
+  window.deleteAccount = (id) => {
     deleteId = id;
     document.getElementById("deleteModal").style.display = "flex";
-  }
+  };
 
-  const cancelDelete = document.getElementById("cancelDelete");
-  const confirmDelete = document.getElementById("confirmDelete");
-  if (cancelDelete) {
-    cancelDelete.addEventListener("click", () => {
-      deleteId = null;
-      document.getElementById("deleteModal").style.display = "none";
+  document.getElementById("cancelDelete").onclick = () => {
+    deleteId = null;
+    document.getElementById("deleteModal").style.display = "none";
+  };
+
+  document.getElementById("confirmDelete").onclick = async () => {
+    if (!deleteId) return;
+
+    const res = await fetch(`${API_PASSWORD_URL}/delete/${deleteId}`, {
+      method: "DELETE",
+      credentials: "include",
+      headers: { "X-CSRF-Token": getCSRFToken() }
     });
-  }
-  if (confirmDelete) {
-    confirmDelete.addEventListener("click", async () => {
-      if (!deleteId) return;
-      try {
-        const res = await fetch(`${API_PASSWORD_URL}/delete/${deleteId}`, {
-          method: "DELETE",
-          credentials: "include"
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          notify("Account deleted!");
-          loadAccounts();
-        } else {
-          notify(data.message || "Delete failed", "red");
-        }
-      } catch (err) {
-        console.error(err);
-        notify("Server error", "red");
+
+    const data = await res.json();
+    if (data.success) {
+      notify("Deleted");
+      loadAccounts();
+    }
+
+    document.getElementById("deleteModal").style.display = "none";
+  };
+
+
+  
+  //  Save or Update Account
+  
+  document.getElementById("saveBtn").onclick = async () => {
+    const name = document.getElementById("accName").value.trim();
+    const password = document.getElementById("accPassword").value.trim();
+
+    if (!name || !password) {
+      notify("Both fields required", "red");
+      return;
+    }
+
+    if (editMode) {
+      const response = await fetch(`${API_PASSWORD_URL}/edit/${editAccountId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": getCSRFToken()
+        },
+        body: JSON.stringify({ account_name: name, account_password: password })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        notify("Updated!");
+        editMode = false;
+        editAccountId = null;
+        document.getElementById("saveBtn").textContent = "Save Account";
+        document.getElementById("accName").value = "";
+        document.getElementById("accPassword").value = "";
+        loadAccounts();
       }
-      deleteId = null;
-      document.getElementById("deleteModal").style.display = "none";
+      return;
+    }
+
+    // Normal Save
+    const response = await fetch(`${API_PASSWORD_URL}/add`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": getCSRFToken()
+      },
+      body: JSON.stringify({ account_name: name, account_password: password })
     });
-  }
 
-  // SAVE / UPDATE
-  if (saveBtn) {
-    saveBtn.addEventListener("click", async () => {
-      const name = document.getElementById("accName").value.trim();
-      const password = document.getElementById("accPassword").value.trim();
+    const data = await response.json();
+    if (data.success) {
+      notify("Saved!");
+      document.getElementById("accName").value = "";
+      document.getElementById("accPassword").value = "";
+      loadAccounts();
+    }
+  };
 
-      if (!name || !password) {
-        notify("Both fields required!", "red");
-        return;
-      }
 
-      // UPDATE
-      if (editMode && editAccountId) {
-        try {
-          const res = await fetch(`${API_PASSWORD_URL}/edit/${editAccountId}`, {
-            method: "PUT",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ account_name: name, account_password: password })
-          });
-          const data = await res.json();
-          if (res.ok && data.success) {
-            notify("Account updated!");
-            editMode = false;
-            editAccountId = null;
-            saveBtn.textContent = "Save Account";
-            document.getElementById("accName").value = "";
-            document.getElementById("accPassword").value = "";
-            loadAccounts();
-          } else {
-            notify(data.message || "Update failed", "red");
-          }
-        } catch (err) {
-          console.error(err);
-          notify("Server error", "red");
-        }
-        return;
-      }
+  
+  //  Logout
 
-      // CREATE
-      try {
-        const res = await fetch(`${API_PASSWORD_URL}/add`, {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ account_name: name, account_password: password })
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          notify("Account saved!");
-          document.getElementById("accName").value = "";
-          document.getElementById("accPassword").value = "";
-          loadAccounts();
-        } else {
-          notify(data.message || "Save failed", "red");
-        }
-      } catch (err) {
-        console.error(err);
-        notify("Server error", "red");
-      }
+  document.getElementById("logoutBtn").onclick = async () => {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+      headers: { "X-CSRF-Token": getCSRFToken() }
     });
-  }
 
-  // LOGOUT - call server to destroy cookie + clear sessionStorage
-  const logoutBtn = document.getElementById("logoutBtn");
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", async () => {
-      try {
-        const res = await fetch("/api/auth/logout", {
-          method: "POST",
-          credentials: "include"
-        });
-        if (res.ok) {
-          sessionStorage.removeItem("username");
-          notify("Logged out");
-          window.location.href = "/";
-        } else {
-          notify("Logout failed", "red");
-        }
-      } catch (err) {
-        console.error(err);
-        notify("Logout error", "red");
-      }
-    });
-  }
+    window.location.href = "/";
+  };
 
 });
-        
+    
