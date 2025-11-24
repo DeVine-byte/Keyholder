@@ -83,12 +83,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
       if (data.success) {
         document.getElementById("usernameDisplay").textContent = data.username;
-      } else {
+      } /*else {
         window.location.href = "/";
       }
-    } catch (err) {
+    } *//*catch (err) {
       window.location.href = "/";
-    }
+    }*/
   }
 
   loadUsername();
