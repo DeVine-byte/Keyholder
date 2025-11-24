@@ -1,0 +1,75 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KeyHolder | Password Manager</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+</head>
+<body class="home">
+  <header>
+    <h1>KeyHolder</h1>
+    <nav>
+      <a href="{{ url_for('home') }}" class="active">Home</a>
+      <a href="{{ url_for('about') }}" class="active">About</a>
+      <button id="authBtn" class="btn-primary">Login / Sign Up</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h2>What is a Password Manager?</h2>
+      <p>A password manager securely stores and check the strength of  passwords for all your online accounts.</p>
+    </section>
+    <section class="hero">
+      <h2> Why It Matters </h2>
+      <p>Use of weak or duplicate passwords can lead to data breaches and identity theft. A password manager keeps your online life secure.</p>
+      <p>sponsored by </p> 
+    </section>
+    <section class="hero">
+      <h2>Why Choose KeyHolder? </h2>
+      <p>KeyHolder offers bank-level security, easy management, and peace of mind. Say goodbye to password stress!</p>
+    </section>
+    <section class="hero">
+      <h2> Secure Your Digital Life with KeyHolder</h2>
+      <p>Login or register to manage your encrypted passwords safely.</p>
+      <p>sponsored by </p> 
+      <a href="https://divosec.onrender.com/" class="refer"><img src="{{ url_for('static', filename='images/tagline.png') }}" alt="Photo" class="minister-photo"></a>
+    </section>
+  </main>
+
+  <!-- Popup Modal -->
+  <div id="authModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button id="loginTab" class="active">Login</button>
+        <button id="registerTab">Register</button>
+      </div>
+
+      <!-- Login Form -->
+          <form id="loginForm" class= "form active">
+            <h2>Login</h2>
+            <input type="email" id="loginEmail" placeholder="Email" required />
+            <input type="password" id="loginPassword" placeholder="Password" required />
+            <button type="submit" id="loginBtn">Login</button>
+          </form>
+
+
+      <!-- Register Form -->
+      <form id="registerForm" class="form">
+        <h2>Register</h2>
+        <input type="text" id="registerUsername" placeholder="Username" required />
+        <input type="email" id="registerEmail" placeholder="Email" required />
+        <input type="password" id="registerPassword" placeholder="Password" required />
+        <button type="submit" id="registerBtn">Register</button>
+      </form>
+  </div>
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+</body>
+</html>

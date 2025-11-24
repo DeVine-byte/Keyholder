@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashstyle.css') }}">
+
+</head>
+
+<body>
+  <header>
+    <h1>KeyHolder</h1>
+    <nav>
+      <a href="{{ url_for('home') }}" class="active">Home</a>
+      <a href="{{ url_for('about') }}" class="active">About</a>
+    </nav>
+  </header>
+  <div class="container">
+    <h1>Welcome, <span id="usernameDisplay"></span></h1>
+    <button id="logoutBtn">Logout</button>
+
+    <h2>Add New Account</h2>
+    <input type="text" id="accName" placeholder="Account Name">
+    <input type="password" id="accPassword" placeholder="Account Password">
+    <button id="saveBtn">Save Account</button>
+    <div id="strengthBox" style="margin-top:5px; font-weight:bold;"></div>
+
+
+    <hr>
+
+    <h2>Your Saved Accounts</h2>
+    <input type="text" id="searchInput" placeholder="Search by account name...">
+
+    <div id="accountsList"></div>
+  </div>
+<!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal" style="display:none;">
+      <div class="modal-content" style="max-width:300px; text-align:center;">
+        <h3>Delete Account?</h3>
+        <p>This action cannot be undone.</p>
+        <button id="confirmDelete" style="background:red;color:white;margin-right:10px;">Delete</button>
+        <button id="cancelDelete">Cancel</button>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+
+</body>
+</html>
