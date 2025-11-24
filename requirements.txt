@@ -1,0 +1,9 @@
+Flask
+Flask-Cors
+Flask-Caching
+pymongo
+dnspython
+Werkzeug
+python-dotenv
+itsdangerous
+pycryptodome
