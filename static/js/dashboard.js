@@ -105,22 +105,25 @@ document.addEventListener("DOMContentLoaded", () => {
   let editAccountId = null;
 
   async function loadAccounts() {
-    try {
-      const response = await fetch(`${API_PASSWORD_URL}/list`, {
-        method: "GET",
-        credentials: "include"
+  fetch(`${API_PASSWORD_URL}/list`, { credentials: "include" })
+    .then(res => res.json())
+    .then(data => {
+      const container = document.getElementById("accountsList");
+      container.innerHTML = "";
+
+      data.accounts.forEach(acc => {
+        const div = document.createElement("div");
+        div.classList.add("account");
+        div.innerHTML = `
+          <span>${acc.account_name}</span>
+          <button onclick="togglePassword(${acc.id})">Show Password</button>
+          <div id="pw-${acc.id}" style="display:none;"></div>
+        `;
+        container.appendChild(div);
       });
+    });
+}
 
-      const data = await response.json();
-
-      if (data.success) {
-        allAccounts = data.accounts;
-        displayAccounts(allAccounts);
-      }
-    } catch (err) {
-      notify("Error loading accounts", "red");
-    }
-  }
 
   loadAccounts();
 
