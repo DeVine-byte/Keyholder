@@ -16,19 +16,22 @@ document.addEventListener("DOMContentLoaded", () => {
   // ---------------------------
   //  Modal Handling
   // ---------------------------
-  const authBtns = document.querySelectorAll(".authBtn");
+  const authBtn = document.getElementById("authBtn");   // FIXED ❗
   const modal = document.getElementById("authModal");
   const closeBtn = document.querySelector(".close");
 
-  // Open modal on all auth buttons
-  authBtns.forEach(btn => {
-    btn.addEventListener("click", () => {
+  if (authBtn) {
+    authBtn.addEventListener("click", () => {
       modal.style.display = "block";
     });
-  });
+  }
 
-  // Close modal
-  if (closeBtn) closeBtn.addEventListener("click", () => modal.style.display = "none");
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      modal.style.display = "none";
+    });
+  }
+
   window.addEventListener("click", (e) => {
     if (e.target === modal) modal.style.display = "none";
   });
@@ -65,29 +68,27 @@ document.addEventListener("DOMContentLoaded", () => {
   // ---------------------------
   registerForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+
     const username = document.getElementById("registerUsername").value.trim();
     const email = document.getElementById("registerEmail").value.trim();
     const password = document.getElementById("registerPassword").value.trim();
 
-    try {
-      const response = await fetch(`${API_URL}/register`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRF-Token": getCSRFToken()
-        },
-        body: JSON.stringify({ username, email, password })
-      });
+    const response = await fetch(`${API_URL}/register`, {
+      method: "POST",
+      credentials: "include",   // IMPORTANT ❗
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": getCSRFToken()
+      },
+      body: JSON.stringify({ username, email, password })
+    });
 
-      const data = await response.json();
-      if (response.ok && data.success) {
-        window.location.href = "/dashboard";
-      } else {
-        console.log(data.message || "Registration failed.");
-      }
-    } catch (err) {
-      console.log("Server connection failed.");
+    const data = await response.json();
+
+    if (data.success) {
+      window.location.replace("/dashboard");   // FIXED REDIRECT
+    } else {
+      console.log(data.message || "Registration failed.");
     }
   });
 
@@ -96,28 +97,27 @@ document.addEventListener("DOMContentLoaded", () => {
   // ---------------------------
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+
     const email = document.getElementById("loginEmail").value.trim();
     const password = document.getElementById("loginPassword").value.trim();
 
-    try {
-      const response = await fetch(`${API_URL}/login`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRF-Token": getCSRFToken()
-        },
-        body: JSON.stringify({ email, password })
-      });
+    const response = await fetch(`${API_URL}/login`, {
+      method: "POST",
+      credentials: "include",    // IMPORTANT ❗
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": getCSRFToken()
+      },
+      body: JSON.stringify({ email, password })
+    });
 
-      const data = await response.json();
-      if (response.ok && data.success) {
-        window.location.href = "/dashboard";
-      } else {
-        console.log(data.message || "Login failed.");
-      }
-    } catch (err) {
-      console.log("Unable to reach server.");
+    const data = await response.json();
+
+    if (data.success) {
+      window.location.replace("/dashboard");   // BETTER redirect handling
+    } else {
+      console.log(data.message || "Login failed.");
     }
   });
+
 });
