@@ -11,12 +11,11 @@ function getCSRFToken() {
   }
   return "";
 }
-
-
 document.addEventListener("DOMContentLoaded", () => {
 
-  //  Nice Notification Box
-  
+  // -----------------------------
+  //  Notification Box
+  // -----------------------------
   function notify(message, color = "green") {
     const box = document.createElement("div");
     box.textContent = message;
@@ -30,10 +29,9 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => box.remove(), 2000);
   }
 
-
-  
+  // -----------------------------
   //  Password Strength Meter
-  
+  // -----------------------------
   function checkStrength(password) {
     let score = 0;
     if (password.length > 6) score++;
@@ -49,22 +47,24 @@ document.addEventListener("DOMContentLoaded", () => {
       case 3: return { text: "Good", color: "blue" };
       case 4:
       case 5: return { text: "Strong", color: "green" };
+      default: return { text: "Weak", color: "red" };
     }
   }
 
-  document.getElementById("accPassword").addEventListener("input", (e) => {
-    const strength = checkStrength(e.target.value);
-    const box = document.getElementById("strengthBox");
+  const accPassword = document.getElementById("accPassword");
+  const strengthBox = document.getElementById("strengthBox");
 
-    if (e.target.value === "") {
-      box.innerHTML = "";
-      return;
-    }
-
-    box.innerHTML = `Strength: <span style="color:${strength.color}">${strength.text}</span>`;
-  });
-
-
+  if (accPassword && strengthBox) {
+    accPassword.addEventListener("input", (e) => {
+      const strength = checkStrength(e.target.value);
+      if (e.target.value === "") {
+        strengthBox.innerHTML = "";
+        return;
+      }
+      strengthBox.innerHTML = `Strength: <span style="color:${strength.color}">${strength.text}</span>`;
+    });
+                                 }
+  
   //  API BASE
   
   const API_PASSWORD_URL = "/api/password";
