@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ---------------------------
   //  Modal Handling
   // ---------------------------
-  const authBtn = document.getElementById("authBtn");   // FIXED ❗
+  const authBtn = document.getElementByClassName("authBtn");   // FIXED ❗
   const modal = document.getElementById("authModal");
   const closeBtn = document.querySelector(".close");
 
