@@ -1,8 +1,10 @@
-
-//  CSRF TOKEN READER
+/* ============================================================
+   CSRF TOKEN READER
+   ============================================================ */
 function getCSRFToken() {
   const name = "X-CSRF-Token=";
   const cookies = decodeURIComponent(document.cookie).split(";");
+
   for (let c of cookies) {
     c = c.trim();
     if (c.startsWith(name)) {
@@ -11,11 +13,16 @@ function getCSRFToken() {
   }
   return "";
 }
+
+/* ============================================================
+   MAIN SCRIPT
+   ============================================================ */
+
 document.addEventListener("DOMContentLoaded", () => {
 
-  // -----------------------------
-  //  Notification Box
-  // -----------------------------
+  /* ============================================================
+     Notification Toast
+     ============================================================ */
   function notify(message, color = "green") {
     const box = document.createElement("div");
     box.textContent = message;
@@ -29,11 +36,12 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => box.remove(), 2000);
   }
 
-  // -----------------------------
-  //  Password Strength Meter
-  // -----------------------------
+  /* ============================================================
+     Password Strength Meter
+     ============================================================ */
   function checkStrength(password) {
     let score = 0;
+
     if (password.length > 6) score++;
     if (password.length > 10) score++;
     if (/[A-Z]/.test(password)) score++;
@@ -56,23 +64,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (accPassword && strengthBox) {
     accPassword.addEventListener("input", (e) => {
-      const strength = checkStrength(e.target.value);
-      if (e.target.value === "") {
+      const pwd = e.target.value;
+      const strength = checkStrength(pwd);
+
+      if (pwd === "") {
         strengthBox.innerHTML = "";
         return;
       }
-      strengthBox.innerHTML = `Strength: <span style="color:${strength.color}">${strength.text}</span>`;
+
+      strengthBox.innerHTML =
+        `Strength: <span style="color:${strength.color}">${strength.text}</span>`;
     });
-                                 }
-  
-  //  API BASE
-  
+  }
+
+  /* ============================================================
+     API BASE URL
+     ============================================================ */
   const API_PASSWORD_URL = "/api/password";
 
-
-  
-  //  Load Username from Server
-
+  /* ============================================================
+     Load Username
+     ============================================================ */
   async function loadUsername() {
     try {
       const res = await fetch("/api/auth/me", {
@@ -83,20 +95,19 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
       if (data.success) {
         document.getElementById("usernameDisplay").textContent = data.username;
-      } /*else {
+      } else {
         window.location.href = "/";
       }
-    } *//*catch (err) {
+    } catch (err) {
       window.location.href = "/";
-    }*/
+    }
   }
 
   loadUsername();
 
-
-  
-  //  Load Accounts
-
+  /* ============================================================
+     Load Accounts
+     ============================================================ */
   const accountsList = document.getElementById("accountsList");
   const searchInput = document.getElementById("searchInput");
 
@@ -105,32 +116,31 @@ document.addEventListener("DOMContentLoaded", () => {
   let editAccountId = null;
 
   async function loadAccounts() {
-  fetch(`${API_PASSWORD_URL}/list`, { credentials: "include" })
-    .then(res => res.json())
-    .then(data => {
-      const container = document.getElementById("accountsList");
-      container.innerHTML = "";
-
-      data.accounts.forEach(acc => {
-        const div = document.createElement("div");
-        div.classList.add("account");
-        div.innerHTML = `
-          <span>${acc.account_name}</span>
-          <button onclick="togglePassword(${acc.id})">Show Password</button>
-          <div id="pw-${acc.id}" style="display:none;"></div>
-        `;
-        container.appendChild(div);
+    try {
+      const response = await fetch(`${API_PASSWORD_URL}/list`, {
+        method: "GET",
+        credentials: "include"
       });
-    });
-}
 
+      const data = await response.json();
+
+      if (data.success) {
+        allAccounts = data.accounts;   // IMPORTANT FIX
+        displayAccounts(allAccounts);
+      } else {
+        notify("Error loading accounts", "red");
+      }
+
+    } catch (err) {
+      notify("Server error loading accounts", "red");
+    }
+  }
 
   loadAccounts();
 
-
-  // ---------------------------
-  //  Display Accounts
-  // ---------------------------
+  /* ============================================================
+     DISPLAY ACCOUNTS
+     ============================================================ */
   function displayAccounts(accounts) {
     accountsList.innerHTML = "";
 
@@ -142,11 +152,14 @@ document.addEventListener("DOMContentLoaded", () => {
     accounts.forEach(acc => {
       const box = document.createElement("div");
       box.className = "account-box";
+
       box.innerHTML = `
         <strong>${acc.account_name}</strong>
+
         <div class="password-text" id="pw-${acc.id}" style="display:none;">
           Loading...
         </div>
+
         <div class="actions">
           <button onclick="togglePassword('${acc.id}')">Show</button>
           <button onclick="copyPassword('${acc.id}')">Copy</button>
@@ -159,20 +172,20 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-
-  
-  //  Search
-
+  /* ============================================================
+     SEARCH ACCOUNTS
+     ============================================================ */
   searchInput.addEventListener("input", () => {
-    const text = searchInput.value.toLowerCase();
-    const filtered = allAccounts.filter(a => a.account_name.toLowerCase().includes(text));
+    const txt = searchInput.value.toLowerCase();
+    const filtered = allAccounts.filter(a =>
+      a.account_name.toLowerCase().includes(txt)
+    );
     displayAccounts(filtered);
   });
 
-
-  
-  //  Show Password (fetch from server)
-  
+  /* ============================================================
+     SHOW PASSWORD
+     ============================================================ */
   window.togglePassword = async (id) => {
     const pwDiv = document.getElementById(`pw-${id}`);
 
@@ -183,25 +196,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
     pwDiv.textContent = "Decrypting...";
 
-    const response = await fetch(`/api/password/show/${id}`, {
+    const res = await fetch(`/api/password/show/${id}`, {
       method: "GET",
       credentials: "include"
     });
 
-    const data = await response.json();
+    const data = await res.json();
 
     if (data.success) {
       pwDiv.textContent = "Password: " + data.password;
       pwDiv.style.display = "block";
     } else {
-      pwDiv.textContent = "Error loading password.";
+      pwDiv.textContent = "Error loading password";
     }
   };
 
-
-  
-  //  Copy Password
-  
+  /* ============================================================
+     COPY PASSWORD
+     ============================================================ */
   window.copyPassword = async (id) => {
     const res = await fetch(`/api/password/show/${id}`, {
       method: "GET",
@@ -216,10 +228,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-
-
-  //  Edit Account
-  
+  /* ============================================================
+     EDIT ACCOUNT
+     ============================================================ */
   window.editAccount = async (id) => {
     const acc = allAccounts.find(a => a.id === id);
 
@@ -236,13 +247,12 @@ document.addEventListener("DOMContentLoaded", () => {
     editMode = true;
     editAccountId = id;
 
-    document.getElementById("saveBtn").textContent = "Update";
+    document.getElementById("saveBtn").textContent = "Update Account";
   };
 
-
-  
-  //  Delete Account
-  
+  /* ============================================================
+     DELETE ACCOUNT
+     ============================================================ */
   let deleteId = null;
 
   window.deleteAccount = (id) => {
@@ -256,15 +266,19 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   document.getElementById("confirmDelete").onclick = async () => {
+
     if (!deleteId) return;
 
     const res = await fetch(`${API_PASSWORD_URL}/delete/${deleteId}`, {
       method: "DELETE",
       credentials: "include",
-      headers: { "X-CSRF-Token": getCSRFToken() }
+      headers: {
+        "X-CSRF-Token": getCSRFToken()
+      }
     });
 
     const data = await res.json();
+
     if (data.success) {
       notify("Deleted");
       loadAccounts();
@@ -273,11 +287,11 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("deleteModal").style.display = "none";
   };
 
-
-  
-  //  Save or Update Account
-  
+  /* ============================================================
+     SAVE OR UPDATE ACCOUNT
+     ============================================================ */
   document.getElementById("saveBtn").onclick = async () => {
+
     const name = document.getElementById("accName").value.trim();
     const password = document.getElementById("accPassword").value.trim();
 
@@ -286,42 +300,55 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    // UPDATE MODE
     if (editMode) {
-      const response = await fetch(`${API_PASSWORD_URL}/edit/${editAccountId}`, {
+
+      const res = await fetch(`${API_PASSWORD_URL}/edit/${editAccountId}`, {
         method: "PUT",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
           "X-CSRF-Token": getCSRFToken()
         },
-        body: JSON.stringify({ account_name: name, account_password: password })
+        body: JSON.stringify({
+          account_name: name,
+          account_password: password
+        })
       });
 
-      const data = await response.json();
+      const data = await res.json();
+
       if (data.success) {
         notify("Updated!");
         editMode = false;
         editAccountId = null;
-        document.getElementById("saveBtn").textContent = "Save Account";
+
         document.getElementById("accName").value = "";
         document.getElementById("accPassword").value = "";
+        document.getElementById("saveBtn").textContent = "Save Account";
+
         loadAccounts();
       }
+
       return;
     }
 
-    // Normal Save
-    const response = await fetch(`${API_PASSWORD_URL}/add`, {
+    // NORMAL SAVE MODE
+    const res = await fetch(`${API_PASSWORD_URL}/add`, {
       method: "POST",
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
         "X-CSRF-Token": getCSRFToken()
       },
-      body: JSON.stringify({ account_name: name, account_password: password })
+      body: JSON.stringify({
+        account_name: name,
+        account_password: password
+      })
     });
 
-    const data = await response.json();
+    const data = await res.json();
+
     if (data.success) {
       notify("Saved!");
       document.getElementById("accName").value = "";
@@ -330,15 +357,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-
-  
-  //  Logout
-
+  /* ============================================================
+     LOGOUT
+     ============================================================ */
   document.getElementById("logoutBtn").onclick = async () => {
     await fetch("/api/auth/logout", {
       method: "POST",
       credentials: "include",
-      headers: { "X-CSRF-Token": getCSRFToken() }
+      headers: {
+        "X-CSRF-Token": getCSRFToken()
+      }
     });
 
     window.location.href = "/";
