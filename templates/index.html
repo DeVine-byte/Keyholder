@@ -14,8 +14,7 @@
     <h1 class="logo">🔐 KeyHolder</h1>
     <nav>
       <a href="{{ url_for('home') }}" class="active">Home</a>
-      
-      <button id="authBtn" class="cta-btn">Login / Sign Up</button>
+      <button class="cta-btn authBtn">Login / Sign Up</button>
     </nav>
   </header>
 
@@ -27,29 +26,24 @@
         A modern password manager designed to secure your digital identity with
         zero-knowledge encryption and seamless access.
       </p>
-
-      <button id="authBtn" class="cta-btn">Get Started</button>
+      <button class="cta-btn authBtn">Get Started</button>
     </div>
-
   </section>
 
   <!-- Features Section -->
   <section class="features">
     <h2>Why Choose KeyHolder?</h2>
-
     <div class="feature-grid">
       <div class="feature-card">
-        <h3> Bank-Level Encryption</h3>
+        <h3>Bank-Level Encryption</h3>
         <p>Your password is encrypted before it ever leaves your device. Your secrets stay yours.</p>
       </div>
-
       <div class="feature-card">
         <h3>Instant Password Management</h3>
         <p>Easily save, organize, search, and autofill all your login credentials.</p>
       </div>
-
       <div class="feature-card">
-        <h3> Access Anywhere</h3>
+        <h3>Access Anywhere</h3>
         <p>Manage your vault securely across your devices anytime, anywhere.</p>
       </div>
     </div>
@@ -61,7 +55,7 @@
     <p>
       A password manager is a secure vault that stores and protects all your passwords.
       Instead of remembering dozens of logins, you only need one master password
-      the key to everything.
+      — the key to everything.
     </p>
 
     <h2>Why It Matters</h2>
@@ -76,9 +70,8 @@
     <h2>Take Control of Your Digital Security</h2>
     <p>Create your account today and secure your online life with KeyHolder.</p>
 
-    <button id="authBtn" class="cta-btn">Create Account</button>
+    <button class="cta-btn authBtn">Create Account</button>
     <p>Sponsored by: </p>
-
     <a href="https://divosec.onrender.com/">
       <img src="{{ url_for('static', filename='images/tagline.png') }}" alt="Sponsor Photo">
     </a>
