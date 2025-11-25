@@ -1,4 +1,5 @@
 import os
+import secrets
 import logging
 from flask import Flask, request, jsonify, render_template, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -16,9 +17,9 @@ from db import users, saved_accounts, session_tokens, login_attempts
 from token_utils import generate_token
 from utils import double_encrypt, double_decrypt
 
-
+# -------------------------
 # Logging
-
+# -------------------------
 logger = logging.getLogger("password_manager")
 handler = logging.StreamHandler()
 formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
@@ -26,9 +27,9 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
-
+# -------------------------
 # App init
-
+# -------------------------
 app = Flask(__name__)
 app.config.from_object(Config)
 
@@ -37,30 +38,29 @@ FRONTEND_ORIGIN = os.environ.get("FRONTEND_ORIGIN", "http://localhost:3000")
 CORS(app, origins=[FRONTEND_ORIGIN], supports_credentials=True)
 
 # Security headers
-# Customize content_security_policy for your frontend (here permissive for dev)
 Talisman(app, content_security_policy={
     "default-src": ["'self'"],
     "script-src": ["'self'", FRONTEND_ORIGIN],
     "style-src": ["'self'", FRONTEND_ORIGIN]
 })
 
-# caching (SimpleCache by default; set env if using Redis)
+# caching
 cache = Cache(app)
 
-# rate limiter (IP-based by default)
+# rate limiter
 limiter = Limiter(
     key_func=get_remote_address,
     app=app,
     default_limits=["200 per day", "50 per hour"]
 )
 
-#validation
+# -------------------------
+# Helpers / validation
+# -------------------------
 def _is_valid_objectid(id_str: str) -> bool:
     return ObjectId.is_valid(id_str)
 
-
 def _ensure_indexes():
-    # Create indexes (including TTL for sessions)
     try:
         users.create_index("email", unique=True)
     except Exception:
@@ -72,7 +72,6 @@ def _ensure_indexes():
         logger.exception("Could not create session_tokens.token index.")
 
     try:
-        # TTL index to auto-expire sessions when expires_at < now
         session_tokens.create_index("expires_at", expireAfterSeconds=0)
     except Exception:
         logger.exception("Could not create session_tokens.expires_at TTL index.")
@@ -95,9 +94,9 @@ def _cleanup_expired_sessions():
         logger.info(f"Cleaned up {result.deleted_count} expired sessions.")
 
 
-
+# -------------------------
 # Login attempt helpers
-
+# -------------------------
 def _get_login_attempt(email):
     return login_attempts.find_one({"email": email})
 
@@ -153,23 +152,27 @@ def _reset_login_attempts(email):
     login_attempts.delete_one({"email": email})
 
 
-
-# Token extractor 
+# -------------------------
+# Token extractor & CSRF
+# -------------------------
 def _extract_token_from_request():
-    # Prefer HttpOnly cookie for security; fallback to Authorization header
+    # Prefer HttpOnly cookie (most secure)
     token = request.cookies.get("session_token")
     if token:
         return token
 
+    # fallback to Authorization header
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
         return auth_header.split(" ", 1)[1].strip()
     return None
 
+def _is_production_cookie():
+    return os.environ.get("FLASK_ENV") == "production"
 
-
+# -------------------------
 # token_required decorator
-
+# -------------------------
 def token_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
@@ -177,7 +180,6 @@ def token_required(f):
         if not token:
             return jsonify({"message": "Authentication required"}), 401
 
-        # Cleanup expired sessions proactively
         _cleanup_expired_sessions()
 
         session = session_tokens.find_one({"token": token})
@@ -189,14 +191,25 @@ def token_required(f):
             session_tokens.delete_one({"token": token})
             return jsonify({"message": "Session expired"}), 401
 
-        # session.user_id stored as ObjectId or string -> handle both safely
+        # CSRF protection: for state-changing methods require a matching CSRF token
+        if request.method in ("POST", "PUT", "DELETE"):
+            header_csrf = request.headers.get("X-CSRF-Token")
+            # also allow reading from cookie in case client uses cookie instead
+            cookie_csrf = request.cookies.get("X-CSRF-Token")
+            provided = header_csrf or cookie_csrf
+            expected = session.get("csrf")
+            if not provided or not expected or provided != expected:
+                logger.warning("CSRF token mismatch or missing.")
+                return jsonify({"message": "CSRF validation failed"}), 403
+
+        # Resolve user
         user_doc = None
         try:
             uid = session.get("user_id")
-            if isinstance(uid, ObjectId) or _is_valid_objectid(str(uid)):
+            # uid might be stored as ObjectId or as string
+            if isinstance(uid, ObjectId) or (_is_valid_objectid(str(uid))):
                 user_doc = users.find_one({"_id": ObjectId(str(uid))})
             else:
-                # fallback: attempt to find by string
                 user_doc = users.find_one({"_id": uid})
         except Exception:
             logger.exception("Error resolving user from session token.")
@@ -209,9 +222,9 @@ def token_required(f):
     return wrapper
 
 
-
+# -------------------------
 # Auth endpoints
-
+# -------------------------
 @app.route("/api/auth/register", methods=["POST"])
 @limiter.limit("5 per minute")
 def register():
@@ -224,7 +237,6 @@ def register():
         if not username or not email or not password:
             return jsonify({"success": False, "message": "Missing fields"}), 400
 
-        # Basic email format check (simple)
         if "@" not in email or "." not in email:
             return jsonify({"success": False, "message": "Invalid email"}), 400
 
@@ -243,28 +255,45 @@ def register():
         res = users.insert_one(new_user)
         uid = res.inserted_id
 
-        # create session and store user_id as ObjectId
+        # create session token and csrf token and store user_id as ObjectId
         token = generate_token()
+        csrf = secrets.token_hex(16)
         expires = datetime.utcnow() + timedelta(hours=Config.SESSION_EXPIRES_HOURS)
         session_tokens.insert_one({
             "token": token,
             "user_id": uid,
             "created_at": datetime.utcnow(),
-            "expires_at": expires
+            "expires_at": expires,
+            "csrf": csrf
         })
 
         _reset_login_attempts(email)
 
-        # Return cookie (HttpOnly Secure). In dev, secure=False may be needed if not HTTPS.
+        # cookie flags: in production use Secure + SameSite=None to support cross-site POST->redirect flows
+        secure_cookie = _is_production_cookie()
+        cookie_samesite = "None" if secure_cookie else "Lax"
+        cookie_secure = True if secure_cookie else False
+
         resp = make_response(jsonify({"success": True, "username": username}))
+        # session token (HttpOnly)
         resp.set_cookie(
             "session_token",
             token,
             httponly=True,
-            secure=(os.environ.get("FLASK_ENV") == "production"),
-            samesite="Lax",
+            secure=cookie_secure,
+            samesite=cookie_samesite,
             max_age=Config.SESSION_EXPIRES_HOURS * 3600
         )
+        # csrf cookie (readable by JS) - important for client to put token in X-CSRF-Token header
+        resp.set_cookie(
+            "X-CSRF-Token",
+            csrf,
+            httponly=False,
+            secure=cookie_secure,
+            samesite=cookie_samesite,
+            max_age=Config.SESSION_EXPIRES_HOURS * 3600
+        )
+
         logger.info(f"New user registered: {email}")
         return resp, 201
 
@@ -284,7 +313,6 @@ def login():
         if not email or not password:
             return jsonify({"success": False, "message": "Missing fields"}), 400
 
-        # Rate lock check
         la = _get_login_attempt(email)
         now = datetime.utcnow()
         if la and la.get("locked_until") and isinstance(la["locked_until"], datetime) and la["locked_until"] > now:
@@ -299,24 +327,38 @@ def login():
                 return jsonify({"success": False, "message": "Account locked due to multiple failures"}), 403
             return jsonify({"success": False, "message": "Invalid credentials", "attempts_left": attempts_left}), 401
 
-        # success -> reset attempts and issue session token
+        # success -> reset attempts and create session
         _reset_login_attempts(email)
         token = generate_token()
+        csrf = secrets.token_hex(16)
         expires = datetime.utcnow() + timedelta(hours=Config.SESSION_EXPIRES_HOURS)
         session_tokens.insert_one({
             "token": token,
             "user_id": user_doc["_id"],
             "created_at": datetime.utcnow(),
-            "expires_at": expires
+            "expires_at": expires,
+            "csrf": csrf
         })
+
+        secure_cookie = _is_production_cookie()
+        cookie_samesite = "None" if secure_cookie else "Lax"
+        cookie_secure = True if secure_cookie else False
 
         resp = make_response(jsonify({"success": True, "username": user_doc.get("username")}))
         resp.set_cookie(
             "session_token",
             token,
             httponly=True,
-            secure=(os.environ.get("FLASK_ENV") == "production"),
-            samesite="Lax",
+            secure=cookie_secure,
+            samesite=cookie_samesite,
+            max_age=Config.SESSION_EXPIRES_HOURS * 3600
+        )
+        resp.set_cookie(
+            "X-CSRF-Token",
+            csrf,
+            httponly=False,
+            secure=cookie_secure,
+            samesite=cookie_samesite,
             max_age=Config.SESSION_EXPIRES_HOURS * 3600
         )
 
@@ -328,6 +370,13 @@ def login():
         return jsonify({"success": False, "message": "Login failed"}), 500
 
 
+@app.route("/api/auth/me", methods=["GET"])
+@token_required
+def auth_me(current_user):
+    # simple endpoint to check current session and return username
+    return jsonify({"success": True, "username": current_user.get("username")}), 200
+
+
 @app.route("/api/auth/logout", methods=["POST"])
 @token_required
 def logout(current_user):
@@ -335,9 +384,14 @@ def logout(current_user):
         token = _extract_token_from_request()
         if token:
             session_tokens.delete_one({"token": token})
-        # clear cookie
+        # clear cookies
+        secure_cookie = _is_production_cookie()
+        cookie_samesite = "None" if secure_cookie else "Lax"
+        cookie_secure = True if secure_cookie else False
+
         resp = make_response(jsonify({"success": True, "message": "Logged out"}))
-        resp.set_cookie("session_token", "", expires=0)
+        resp.set_cookie("session_token", "", expires=0, httponly=True, secure=cookie_secure, samesite=cookie_samesite)
+        resp.set_cookie("X-CSRF-Token", "", expires=0, httponly=False, secure=cookie_secure, samesite=cookie_samesite)
         logger.info(f"User logged out: {str(current_user.get('_id'))}")
         return resp, 200
     except Exception:
@@ -345,9 +399,9 @@ def logout(current_user):
         return jsonify({"success": False, "message": "Logout failed"}), 500
 
 
-
+# -------------------------
 # Password endpoints
-
+# -------------------------
 @app.route("/api/password/add", methods=["POST"])
 @token_required
 @limiter.limit("30 per minute")
@@ -366,7 +420,6 @@ def add_password(current_user):
             "account_password": encrypted,
             "created_at": datetime.utcnow()
         })
-        # cache only metadata (names + ids), not plaintext
         cache.delete(f"pw_meta:{str(current_user['_id'])}")
         logger.info(f"Password saved for user {str(current_user['_id'])}: {name}")
         return jsonify({"success": True, "message": "Saved"}), 201
@@ -408,16 +461,13 @@ def show_password(current_user, id):
         if not doc or doc.get("user_id") != str(current_user["_id"]):
             return jsonify({"success": False, "message": "Not found or unauthorized"}), 404
 
-        # decrypt on-demand
         try:
             decrypted = double_decrypt(doc.get("account_password", ""), Config.SECRET_KEY, Config.SECRET_KEY_2)
         except Exception:
             logger.exception("Decryption failed for id %s", id)
             return jsonify({"success": False, "message": "Decryption error"}), 500
 
-        # Audit log (do not log the password itself)
         logger.info(f"Password viewed by user {str(current_user['_id'])} for account {id}")
-
         return jsonify({"success": True, "password": decrypted}), 200
     except Exception:
         logger.exception("Error showing password")
@@ -489,11 +539,11 @@ def dashboard():
     return render_template("dashboard.html")
 
 
-
-
+# -------------------------
 # Startup
-
+# -------------------------
 if __name__ == "__main__":
     _ensure_indexes()
     # Do not run debug=True in production
     app.run(debug=False)
+                            
