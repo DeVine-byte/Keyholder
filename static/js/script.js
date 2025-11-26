@@ -14,23 +14,22 @@ function getCSRFToken() {
 document.addEventListener("DOMContentLoaded", () => {
 
   // ---------------------------
-  //  Modal Handling
+  //  Modal Handling (FIXED)
   // ---------------------------
-  const authBtn = document.getElementByClassName("authBtn");   // FIXED ❗
+  const authBtns = document.getElementsByClassName("authBtn");  
   const modal = document.getElementById("authModal");
   const closeBtn = document.querySelector(".close");
 
-  if (authBtn) {
-    authBtn.addEventListener("click", () => {
+  // Add click listener to *all* buttons with class authBtn
+  Array.from(authBtns).forEach((btn) => {
+    btn.addEventListener("click", () => {
       modal.style.display = "block";
     });
-  }
+  });
 
-  if (closeBtn) {
-    closeBtn.addEventListener("click", () => {
-      modal.style.display = "none";
-    });
-  }
+  closeBtn.addEventListener("click", () => {
+    modal.style.display = "none";
+  });
 
   window.addEventListener("click", (e) => {
     if (e.target === modal) modal.style.display = "none";
@@ -75,7 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const response = await fetch(`${API_URL}/register`, {
       method: "POST",
-      credentials: "include",   // IMPORTANT ❗
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
         "X-CSRF-Token": getCSRFToken()
@@ -86,9 +85,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const data = await response.json();
 
     if (data.success) {
-      window.location.replace("/dashboard");   // FIXED REDIRECT
+      window.location.href = "/dashboard";   // CLEAN redirect
     } else {
-      console.log(data.message || "Registration failed.");
+      alert(data.message || "Registration failed.");
     }
   });
 
@@ -103,7 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const response = await fetch(`${API_URL}/login`, {
       method: "POST",
-      credentials: "include",    // IMPORTANT ❗
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
         "X-CSRF-Token": getCSRFToken()
@@ -114,10 +113,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const data = await response.json();
 
     if (data.success) {
-      window.location.replace("/dashboard");   // BETTER redirect handling
+      window.location.href = "/dashboard";   // CLEAN redirect
     } else {
-      console.log(data.message || "Login failed.");
+      alert(data.message || "Login failed.");
     }
   });
 
 });
+      
