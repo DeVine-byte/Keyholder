@@ -15,14 +15,87 @@ function getCSRFToken() {
 }
 
 /* ============================================================
+   GLOBAL VARIABLES (needed for edit/delete functions)
+   ============================================================ */
+let allAccounts = [];
+let editMode = false;
+let editAccountId = null;
+let deleteId = null;
+
+/* ============================================================
+   GLOBAL FUNCTIONS (needed for onclick in HTML)
+   ============================================================ */
+window.togglePassword = async function (id) {
+  const pwDiv = document.getElementById(`pw-${id}`);
+
+  if (pwDiv.style.display === "block") {
+    pwDiv.style.display = "none";
+    return;
+  }
+
+  pwDiv.textContent = "Decrypting...";
+
+  const res = await fetch(`/api/password/show/${id}`, {
+    method: "GET",
+    credentials: "include"
+  });
+
+  const data = await res.json();
+
+  if (data.success) {
+    pwDiv.textContent = "Password: " + data.password;
+    pwDiv.style.display = "block";
+  } else {
+    pwDiv.textContent = "Error loading password";
+  }
+};
+
+window.copyPassword = async function (id) {
+  const res = await fetch(`/api/password/show/${id}`, {
+    method: "GET",
+    credentials: "include"
+  });
+
+  const data = await res.json();
+
+  if (data.success) {
+    navigator.clipboard.writeText(data.password);
+    alert("Password copied!");
+  }
+};
+
+window.editAccount = async function (id) {
+  const acc = allAccounts.find(a => a.id === id);
+
+  if (!acc) return alert("Error: account not found");
+
+  const res = await fetch(`/api/password/show/${id}`, {
+    method: "GET",
+    credentials: "include"
+  });
+
+  const decrypted = await res.json();
+
+  document.getElementById("accName").value = acc.account_name;
+  document.getElementById("accPassword").value = decrypted.password;
+
+  editMode = true;
+  editAccountId = id;
+
+  document.getElementById("saveBtn").textContent = "Update Account";
+};
+
+window.deleteAccount = function (id) {
+  deleteId = id;
+  document.getElementById("deleteModal").style.display = "block";
+};
+
+/* ============================================================
    MAIN SCRIPT
    ============================================================ */
-
 document.addEventListener("DOMContentLoaded", () => {
 
-  /* ============================================================
-     Notification Toast
-     ============================================================ */
+  /* ===== Notification Toast ===== */
   function notify(message, color = "green") {
     const box = document.createElement("div");
     box.textContent = message;
@@ -31,14 +104,11 @@ document.addEventListener("DOMContentLoaded", () => {
     box.style.padding = "8px";
     box.style.marginBottom = "10px";
     box.style.borderRadius = "5px";
-    box.style.transition = "all 0.5s";
     document.querySelector(".container").prepend(box);
     setTimeout(() => box.remove(), 2000);
   }
 
-  /* ============================================================
-     Password Strength Meter
-     ============================================================ */
+  /* ===== Password Strength Meter ===== */
   function checkStrength(password) {
     let score = 0;
 
@@ -62,29 +132,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const accPassword = document.getElementById("accPassword");
   const strengthBox = document.getElementById("strengthBox");
 
-  if (accPassword && strengthBox) {
-    accPassword.addEventListener("input", (e) => {
-      const pwd = e.target.value;
-      const strength = checkStrength(pwd);
+  accPassword.addEventListener("input", (e) => {
+    const pwd = e.target.value;
+    const strength = checkStrength(pwd);
 
-      if (pwd === "") {
-        strengthBox.innerHTML = "";
-        return;
-      }
+    if (pwd === "") {
+      strengthBox.innerHTML = "";
+      return;
+    }
 
-      strengthBox.innerHTML =
-        `Strength: <span style="color:${strength.color}">${strength.text}</span>`;
-    });
-  }
+    strengthBox.innerHTML =
+      `Strength: <span style="color:${strength.color}">${strength.text}</span>`;
+  });
 
-  /* ============================================================
-     API BASE URL
-     ============================================================ */
   const API_PASSWORD_URL = "/api/password";
 
-  /* ============================================================
-     Load Username
-     ============================================================ */
+  /* ===== Load Username ===== */
   async function loadUsername() {
     try {
       const res = await fetch("/api/auth/me", {
@@ -93,6 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       const data = await res.json();
+
       if (data.success) {
         document.getElementById("usernameDisplay").textContent = data.username;
       } else {
@@ -105,15 +169,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   loadUsername();
 
-  /* ============================================================
-     Load Accounts
-     ============================================================ */
+  /* ===== Load Accounts ===== */
   const accountsList = document.getElementById("accountsList");
   const searchInput = document.getElementById("searchInput");
-
-  let allAccounts = [];
-  let editMode = false;
-  let editAccountId = null;
 
   async function loadAccounts() {
     try {
@@ -125,12 +183,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await response.json();
 
       if (data.success) {
-        allAccounts = data.accounts;   // IMPORTANT FIX
+        allAccounts = data.accounts;
         displayAccounts(allAccounts);
       } else {
         notify("Error loading accounts", "red");
       }
-
     } catch (err) {
       notify("Server error loading accounts", "red");
     }
@@ -138,9 +195,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   loadAccounts();
 
-  /* ============================================================
-     DISPLAY ACCOUNTS
-     ============================================================ */
+  /* ===== Display Accounts ===== */
   function displayAccounts(accounts) {
     accountsList.innerHTML = "";
 
@@ -157,7 +212,6 @@ document.addEventListener("DOMContentLoaded", () => {
         <strong>${acc.account_name}</strong>
 
         <div class="password-text" id="pw-${acc.id}" style="display:none;">
-          Loading...
         </div>
 
         <div class="actions">
@@ -172,9 +226,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* ============================================================
-     SEARCH ACCOUNTS
-     ============================================================ */
   searchInput.addEventListener("input", () => {
     const txt = searchInput.value.toLowerCase();
     const filtered = allAccounts.filter(a =>
@@ -183,90 +234,13 @@ document.addEventListener("DOMContentLoaded", () => {
     displayAccounts(filtered);
   });
 
-  /* ============================================================
-     SHOW PASSWORD
-     ============================================================ */
-  window.togglePassword = async (id) => {
-    const pwDiv = document.getElementById(`pw-${id}`);
-
-    if (pwDiv.style.display === "block") {
-      pwDiv.style.display = "none";
-      return;
-    }
-
-    pwDiv.textContent = "Decrypting...";
-
-    const res = await fetch(`/api/password/show/${id}`, {
-      method: "GET",
-      credentials: "include"
-    });
-
-    const data = await res.json();
-
-    if (data.success) {
-      pwDiv.textContent = "Password: " + data.password;
-      pwDiv.style.display = "block";
-    } else {
-      pwDiv.textContent = "Error loading password";
-    }
-  };
-
-  /* ============================================================
-     COPY PASSWORD
-     ============================================================ */
-  window.copyPassword = async (id) => {
-    const res = await fetch(`/api/password/show/${id}`, {
-      method: "GET",
-      credentials: "include"
-    });
-
-    const data = await res.json();
-
-    if (data.success) {
-      navigator.clipboard.writeText(data.password);
-      notify("Password copied!");
-    }
-  };
-
-  /* ============================================================
-     EDIT ACCOUNT
-     ============================================================ */
-  window.editAccount = async (id) => {
-    const acc = allAccounts.find(a => a.id === id);
-
-    const res = await fetch(`/api/password/show/${id}`, {
-      method: "GET",
-      credentials: "include"
-    });
-
-    const decrypted = await res.json();
-
-    document.getElementById("accName").value = acc.account_name;
-    document.getElementById("accPassword").value = decrypted.password;
-
-    editMode = true;
-    editAccountId = id;
-
-    document.getElementById("saveBtn").textContent = "Update Account";
-  };
-
-  /* ============================================================
-     DELETE ACCOUNT
-     ============================================================ */
-  let deleteId = null;
-
-  window.deleteAccount = (id) => {
-    deleteId = id;
-    document.getElementById("deleteModal").style.display = "flex";
-  };
-
+  /* ===== Delete Confirmation Modal ===== */
   document.getElementById("cancelDelete").onclick = () => {
     deleteId = null;
     document.getElementById("deleteModal").style.display = "none";
   };
 
   document.getElementById("confirmDelete").onclick = async () => {
-
     if (!deleteId) return;
 
     const res = await fetch(`${API_PASSWORD_URL}/delete/${deleteId}`, {
@@ -280,18 +254,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const data = await res.json();
 
     if (data.success) {
-      notify("Deleted");
+      notify("Deleted!");
       loadAccounts();
     }
 
     document.getElementById("deleteModal").style.display = "none";
   };
 
-  /* ============================================================
-     SAVE OR UPDATE ACCOUNT
-     ============================================================ */
+  /* ===== Save or Update Account ===== */
   document.getElementById("saveBtn").onclick = async () => {
-
     const name = document.getElementById("accName").value.trim();
     const password = document.getElementById("accPassword").value.trim();
 
@@ -300,9 +271,8 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // UPDATE MODE
+    // UPDATE
     if (editMode) {
-
       const res = await fetch(`${API_PASSWORD_URL}/edit/${editAccountId}`, {
         method: "PUT",
         credentials: "include",
@@ -333,7 +303,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // NORMAL SAVE MODE
+    // SAVE NEW ACCOUNT
     const res = await fetch(`${API_PASSWORD_URL}/add`, {
       method: "POST",
       credentials: "include",
@@ -357,9 +327,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  /* ============================================================
-     LOGOUT
-     ============================================================ */
+  /* ===== Logout ===== */
   document.getElementById("logoutBtn").onclick = async () => {
     await fetch("/api/auth/logout", {
       method: "POST",
@@ -373,4 +341,4 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
 });
-    
+                          
