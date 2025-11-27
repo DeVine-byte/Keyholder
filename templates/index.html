@@ -8,11 +8,20 @@
 </head>
 
 <body class="home">
+  <script>
+    const menuBtn = document.getElementById("menuToggle");
+    const navMenu = document.getElementById("navMenu");
 
+    menuBtn.addEventListener("click", () => {
+    navMenu.classList.toggle("mobile-open");
+    });
+   </script>
   <!-- Header -->
   <header class="navbar">
     <h1 class="logo">🔐 KeyHolder</h1>
     <nav>
+      <!-- Mobile Menu Button -->
+      <button id="menuToggle" class="menu-btn">☰</button>
       <a href="{{ url_for('home') }}" class="active">Home</a>
       <button class="cta-btn authBtn">Login / Sign Up</button>
     </nav>
