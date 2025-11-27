@@ -98,6 +98,11 @@ body {
   max-width: 100%;
   animation: float 3s ease-in-out infinite;
 }
+.sponsor img {
+  max-width: 100%;
+  height: auto;
+  width: 150px; /* adjust this value */
+}
 
 /* Floating animation */
 @keyframes float {
@@ -296,5 +301,8 @@ body {
   .modal-content {
     width: 95%;
     margin-top: 35%;
+  }
+  .sponsor-tag img {
+    width: 100px; /* adjust this value */
   }
 }
