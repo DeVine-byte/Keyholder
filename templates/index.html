@@ -8,21 +8,15 @@
 </head>
 
 <body class="home">
-  <script>
-    const menuBtn = document.getElementById("menuToggle");
-    const navMenu = document.getElementById("navMenu");
-
-    menuBtn.addEventListener("click", () => {
-    navMenu.classList.toggle("mobile-open");
-    });
-   </script>
   <!-- Header -->
   <header class="navbar">
     <h1 class="logo">🔐 KeyHolder</h1>
-    <nav>
-      <!-- Mobile Menu Button -->
-      <button id="menuToggle" class="menu-btn">☰</button>
-      <a href="{{ url_for('home') }}" class="active">Home</a>
+
+    <!-- Mobile Menu Button -->
+    <button id="menuToggle" class="menu-btn">☰</button>
+
+    <!-- Navigation Menu -->
+    <nav id="navMenu" class="nav-links">
       <button class="cta-btn authBtn">Login / Sign Up</button>
     </nav>
   </header>
@@ -115,6 +109,14 @@
       </form>
     </div>
   </div>
+  <script>
+    const menuBtn = document.getElementById("menuToggle");
+    const navMenu = document.getElementById("navMenu");
+
+    menuBtn.addEventListener("click", () => {
+    navMenu.classList.toggle("mobile-open");
+    });
+  </script>
 
   <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 
