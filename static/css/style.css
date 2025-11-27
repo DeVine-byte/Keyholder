@@ -235,15 +235,54 @@ h1, h2, h3 {
 }
 
 /*  RESPONSIVE */
+
+/*  RESPONSIVE (MOBILE IMPROVED) */
 @media (max-width: 800px) {
 
+  body {
+    overflow-x: hidden;
+  }
+
+  .navbar {
+    padding: 1rem;
+  }
+
   .hero-section {
+    padding: 2rem 5%;
     text-align: center;
     flex-direction: column;
   }
 
+  .hero-text {
+    max-width: 100%;
+  }
+
+  .hero-text h2 {
+    font-size: 1.9rem;
+  }
+
+  .hero-text p {
+    font-size: 1rem;
+  }
+
   .hero-img img {
     margin-top: 20px;
-    width: 260px;
+    width: 230px;
   }
-}
+
+  /* Reduce padding on ALL major sections */
+  .features,
+  .info-section,
+  .cta-section {
+    padding: 2.5rem 5%;
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-content {
+    width: 95%;
+    margin-top: 30%;
+  }
+  }
