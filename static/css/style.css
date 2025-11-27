@@ -235,7 +235,7 @@ h1, h2, h3 {
 }
 
 /*  RESPONSIVE */
-@media screen and (max-width: 800px) {
+@media (max-width: 800px) {
 
   .hero-section {
     text-align: center;
