@@ -10,10 +10,7 @@
 <body class="home">
   <!-- Header -->
   <header class="navbar">
-    <h1 class="logo">🔐 KeyHolder</h1>
-
-    <!-- Mobile Menu Button -->
-    <button id="menuToggle" class="menu-btn">☰</button>
+    <h1 class="logo">KeyHolder</h1>
 
     <!-- Navigation Menu -->
     <nav id="navMenu" class="nav-links">
@@ -109,15 +106,6 @@
       </form>
     </div>
   </div>
-  <script>
-    const menuBtn = document.getElementById("menuToggle");
-    const navMenu = document.getElementById("navMenu");
-
-    menuBtn.addEventListener("click", () => {
-    navMenu.classList.toggle("mobile-open");
-    });
-  </script>
-
   <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 
 </body>
