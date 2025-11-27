@@ -31,49 +31,6 @@ h1, h2, h3 {
 .navbar nav a:hover {
   text-decoration: underline;
 }
-/* ---------------------------------------------------- */
-/* NAVBAR DESKTOP & MOBILE */
-/* ---------------------------------------------------- */
-
-nav {
-  display: flex;
-  gap: 1rem;
-}
-
-/* MOBILE: Hide nav by default */
-.menu-btn {
-  display: none;
-  background: white;
-  color: #008000;
-  border: none;
-  padding: 8px 12px;
-  font-size: 22px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-/* Mobile dropdown menu */
-#navMenu.mobile-open {
-  display: block;
-  position: absolute;
-  top: 70px;
-  right: 20px;
-  background: #008000;
-  padding: 12px;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-}
-
-#navMenu.mobile-open a {
-  display: block;
-  padding: 10px;
-  color: white;
-  font-weight: bold;
-}
-
-
-}
-
 
 /*  HERO SECTION  */
 .hero-section {
@@ -280,25 +237,7 @@ nav {
 /*  RESPONSIVE */
 @media screen and (max-width: 800px) {
 
-  /* Show the menu button */
-  .menu-btn {
-    display: block;
-  }
-
-  /* Hide nav normally */
-  nav {
-    display: none;
-  }
-
-  /* When opened, nav shows */
-  nav.mobile-open {
-    display: block;
-  }
-
-  header {
-    position: relative;
-  }
-    .hero-section {
+  .hero-section {
     text-align: center;
     flex-direction: column;
   }
@@ -308,4 +247,3 @@ nav {
     width: 260px;
   }
 }
-
