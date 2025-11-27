@@ -63,7 +63,7 @@ async function copyPassword(id) {
 
   if (data.success) {
     navigator.clipboard.writeText(data.password);
-    alert("Copied!");
+    //alert("Copied!");
   } else {
     alert("Copy failed");
   }
