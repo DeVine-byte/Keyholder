@@ -278,7 +278,7 @@ nav {
 }
 
 /*  RESPONSIVE */
-@media screen and (max-width: 768px) {
+@media screen and (max-width: 800px) {
 
   /* Show the menu button */
   .menu-btn {
