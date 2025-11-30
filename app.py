@@ -17,9 +17,7 @@ from db import users, saved_accounts, session_tokens, login_attempts
 from token_utils import generate_token
 from utils import double_encrypt, double_decrypt
 
-# -------------------------
 # Logging
-# -------------------------
 logger = logging.getLogger("password_manager")
 handler = logging.StreamHandler()
 formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
@@ -27,13 +25,12 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
-# -------------------------
+
 # App init
-# -------------------------
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Restrict CORS to your frontend origin (set FRONTEND_ORIGIN in env)
+#set FRONTEND_ORIGIN in env
 FRONTEND_ORIGIN = os.environ.get("FRONTEND_ORIGIN", "http://localhost:3000")
 CORS(app, origins=[FRONTEND_ORIGIN], supports_credentials=True)
 
@@ -54,9 +51,7 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"]
 )
 
-# -------------------------
-# Helpers / validation
-# -------------------------
+# validation
 def _is_valid_objectid(id_str: str) -> bool:
     return ObjectId.is_valid(id_str)
 
@@ -94,9 +89,7 @@ def _cleanup_expired_sessions():
         logger.info(f"Cleaned up {result.deleted_count} expired sessions.")
 
 
-# -------------------------
 # Login attempt helpers
-# -------------------------
 def _get_login_attempt(email):
     return login_attempts.find_one({"email": email})
 
@@ -151,10 +144,8 @@ def _register_failed_login(email):
 def _reset_login_attempts(email):
     login_attempts.delete_one({"email": email})
 
-
-# -------------------------
-# Token extractor & CSRF
-# -------------------------
+    
+# Token  & CSRF
 def _extract_token_from_request():
     # Prefer HttpOnly cookie (most secure)
     token = request.cookies.get("session_token")
@@ -170,9 +161,9 @@ def _extract_token_from_request():
 def _is_production_cookie():
     return os.environ.get("FLASK_ENV") == "production"
 
-# -------------------------
+    
+
 # token_required decorator
-# -------------------------
 def token_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
@@ -222,9 +213,8 @@ def token_required(f):
     return wrapper
 
 
-# -------------------------
+
 # Auth endpoints
-# -------------------------
 @app.route("/api/auth/register", methods=["POST"])
 @limiter.limit("5 per minute")
 def register():
@@ -399,9 +389,7 @@ def logout(current_user):
         return jsonify({"success": False, "message": "Logout failed"}), 500
 
 
-# -------------------------
 # Password endpoints
-# -------------------------
 @app.route("/api/password/add", methods=["POST"])
 @token_required
 @limiter.limit("30 per minute")
@@ -526,9 +514,9 @@ def delete_password(current_user, id):
         return jsonify({"success": False, "message": "Could not delete account"}), 500
 
 
-# -------------------------
+
 # Frontend routes
-# -------------------------
+
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -539,9 +527,8 @@ def dashboard():
     return render_template("dashboard.html")
 
 
-# -------------------------
 # Startup
-# -------------------------
+
 if __name__ == "__main__":
     _ensure_indexes()
     # Do not run debug=True in production
