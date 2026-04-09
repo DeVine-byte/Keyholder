@@ -62,6 +62,22 @@ document.addEventListener("DOMContentLoaded", () => {
   // ---------------------------
   const API_URL = "/api/auth";
 
+  //securing password
+
+  function validatePassword(password) {
+  const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])/;
+
+  if (password.length < 8) {
+    return "Password must be at least 8 characters.";
+  }
+
+  if (!strongRegex.test(password)) {
+    return "Password must include uppercase, lowercase, number, and special character.";
+  }
+
+  return null;
+}
+
   // ---------------------------
   //  REGISTER
   // ---------------------------
@@ -71,6 +87,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const username = document.getElementById("registerUsername").value.trim();
     const email = document.getElementById("registerEmail").value.trim();
     const password = document.getElementById("registerPassword").value.trim();
+    const error = validatePassword(password);
+    if (error) {
+      alert(error);
+      return;
+    }
 
     const response = await fetch(`${API_URL}/register`, {
       method: "POST",
