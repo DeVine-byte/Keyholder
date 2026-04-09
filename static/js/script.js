@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
       headers: {
         "Content-Type": "application/json",
         "X-CSRF-Token": getCSRFToken()
-      },
+      };
       body: JSON.stringify({ username, email, password })
     });
 
