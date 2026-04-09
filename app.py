@@ -230,8 +230,12 @@ def register():
         if "@" not in email or "." not in email:
             return jsonify({"success": False, "message": "Invalid email"}), 400
 
-        if users.find_one({"email": email}):
-            return jsonify({"success": False, "message": "Email already exists"}), 400
+        try:
+            res = users.insert_one(new_user)
+        except Exception as e:
+            if "duplicate key" in str(e):
+                return jsonify({"success": False, "message": "Email already exists"}), 400
+                raise
 
         hashed_pw = generate_password_hash(password)
 
