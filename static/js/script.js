@@ -104,8 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
       method: "POST",
       credentials: "include",
       headers: {
-        "Content-Type": "application/json",
-        "X-CSRF-Token": getCSRFToken()
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({ email, password })
     });
